@@ -659,6 +659,7 @@
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     const pageHead = document.querySelector('.page-head');
+    const heroSection = document.querySelector('.hero');
     const pageTitle = document.getElementById('pageTitle');
     const pageDesc = document.getElementById('pageDesc');
     const pageMeta = document.getElementById('pageMeta');
@@ -888,6 +889,7 @@
       const showGroupTitle = !prevFirstQuestion || prevFirstQuestion.group !== firstQuestion.group;
 
       pageHead.classList.toggle('show', showHeader);
+      heroSection.style.display = showHeader ? '' : 'none';
       pageTitle.textContent = showGroupTitle ? firstQuestion.group : page.title.replace(/^.*?·\s*/, '');
       pageDesc.textContent = showGroupTitle ? page.desc : '';
       pageMeta.textContent = `第 ${currentPageIndex + 1} 页 / 共 ${pages.length} 页`;
