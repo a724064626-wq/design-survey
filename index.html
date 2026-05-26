@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>设计需求在线问卷</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --panel: rgba(255,255,255,.86);
+      --text: #0f172a;
+      --muted: #5b6475;
+      --brand: #6d5efc;
+      --brand-2: #22c1c3;
+      --line: rgba(15,23,42,.08);
+      --ok: #0f9d77;
+      --shadow: 0 18px 48px rgba(86,94,146,.16);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(109,94,252,.12), transparent 32%),
+        radial-gradient(circle at top right, rgba(34,193,195,.14), transparent 28%),
+        linear-gradient(180deg, #f8faff 0%, #f4f7fb 100%);
+      min-height: 100vh;
+    }
+
+    .top-progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(109,94,252,.14);
+      z-index: 60;
+      box-shadow: inset 0 -1px 0 rgba(15,23,42,.06);
+    }
+
+    .top-progress-bar {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--brand), var(--brand-2));
+      box-shadow: 0 0 10px rgba(109,94,252,.25);
+      transition: width .25s ease;
+    }
+
+    .shell {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 28px 16px 110px;
+    }
+
+    .hero {
+      margin-top: 10px;
+      padding: 28px;
+      border: 1px solid rgba(255,255,255,.72);
+      background: linear-gradient(135deg, rgba(255,255,255,.95), rgba(245,248,255,.84));
+      box-shadow: var(--shadow);
+      border-radius: 28px;
+      backdrop-filter: blur(14px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      right: -80px;
+      top: -100px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(109,94,252,.22) 0%, rgba(109,94,252,0) 68%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--brand);
+      background: rgba(109,94,252,.09);
+      border: 1px solid rgba(109,94,252,.12);
+      border-radius: 999px;
+      padding: 8px 12px;
+      font-weight: 700;
+    }
+
+    h1 {
+      margin: 16px 0 12px;
+      font-size: clamp(30px, 5vw, 46px);
+      line-height: 1.08;
+      letter-spacing: -.03em;
+      max-width: 760px;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 760px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.72;
+    }
+
+    .hero-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 24px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,.78);
+      border: 1px solid rgba(15,23,42,.06);
+      border-radius: 18px;
+      padding: 16px 18px;
+      box-shadow: 0 8px 20px rgba(15,23,42,.04);
+    }
+
+    .stat b {
+      display: block;
+      font-size: 24px;
+      margin-bottom: 6px;
+    }
+
+    .main-card {
+      margin-top: 22px;
+      background: var(--panel);
+      border: 1px solid rgba(255,255,255,.72);
+      backdrop-filter: blur(18px);
+      box-shadow: var(--shadow);
+      border-radius: 24px;
+      padding: 18px;
+    }
+
+    .page-head {
+      display: none;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .page-head.show {
+      display: flex;
+    }
+
+    .page-head h2 {
+      margin: 0 0 4px;
+      font-size: 24px;
+    }
+
+    .page-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .page-meta {
+      white-space: nowrap;
+      color: var(--brand);
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(109,94,252,.08);
+      padding: 8px 11px;
+      border-radius: 999px;
+    }
+
+    .question-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .question-card {
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      background: linear-gradient(180deg, #fff, #fbfcfe);
+      transition: box-shadow .18s ease, border-color .18s ease;
+    }
+
+    .question-card:focus-within {
+      border-color: rgba(109,94,252,.26);
+      box-shadow: 0 12px 30px rgba(109,94,252,.12);
+    }
+
+    .question-top {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-bottom: 8px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(109,94,252,.08);
+      color: var(--brand);
+    }
+
+    .type-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #0b8c8d;
+      background: rgba(34,193,195,.08);
+      border: 1px solid rgba(34,193,195,.14);
+      flex: 0 0 auto;
+    }
+
+    .question-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .question-title {
+      font-size: 18px;
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .question-reference {
+      margin: 0 0 12px;
+    }
+
+    .question-reference summary {
+      list-style: none;
+      cursor: pointer;
+      color: rgba(91,100,117,.78);
+      font-size: 12px;
+      user-select: none;
+    }
+
+    .question-reference summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .question-reference-content {
+      margin-top: 6px;
+      color: rgba(91,100,117,.78);
+      font-size: 12px;
+      line-height: 1.65;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .option-chip {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid rgba(15,23,42,.1);
+      border-radius: 14px;
+      background: #fff;
+      padding: 12px 14px;
+      min-height: 54px;
+      transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+      cursor: pointer;
+    }
+
+    .option-chip:hover {
+      transform: translateY(-1px);
+      border-color: rgba(109,94,252,.24);
+      box-shadow: 0 10px 20px rgba(109,94,252,.08);
+    }
+
+    .option-chip input {
+      accent-color: var(--brand);
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      flex: 0 0 auto;
+    }
+
+    .option-chip span {
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .other-box, .remark-box, .text-box {
+      margin-top: 12px;
+    }
+
+    textarea, input[type="text"] {
+      width: 100%;
+      border-radius: 16px;
+      border: 1px solid rgba(15,23,42,.1);
+      background: #fff;
+      padding: 14px 15px;
+      font: inherit;
+      line-height: 1.65;
+      color: var(--text);
+      outline: none;
+      transition: border-color .18s ease, box-shadow .18s ease;
+    }
+
+    textarea { min-height: 92px; resize: vertical; }
+
+    textarea:focus, input[type="text"]:focus {
+      border-color: rgba(109,94,252,.35);
+      box-shadow: 0 0 0 4px rgba(109,94,252,.08);
+    }
+
+    .field-meta {
+      margin-top: 8px;
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hint-inline {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .summary-panel {
+      display: none;
+      margin-top: 18px;
+      padding: 18px;
+      border-radius: 22px;
+      background: linear-gradient(180deg, rgba(255,255,255,.97), rgba(246,249,255,.98));
+      border: 1px solid rgba(15,23,42,.06);
+      box-shadow: 0 18px 36px rgba(86,94,146,.12);
+    }
+
+    .summary-panel.show { display: block; }
+
+    .summary-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .summary-header h3 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .summary-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .summary-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .summary-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .summary-group {
+      border-radius: 18px;
+      border: 1px solid rgba(15,23,42,.08);
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .summary-group-head {
+      padding: 14px 16px;
+      background: rgba(109,94,252,.07);
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .summary-items { padding: 10px 12px 14px; }
+
+    .summary-item {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(15,23,42,.03);
+      margin-top: 10px;
+    }
+
+    .summary-item-title {
+      font-weight: 700;
+      margin-bottom: 6px;
+      line-height: 1.6;
+    }
+
+    .summary-item-answer {
+      white-space: pre-wrap;
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 14px;
+    }
+
+    .submit-state {
+      font-size: 13px;
+      color: var(--ok);
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .bottom-toolbar {
+      position: fixed;
+      left: 50%;
+      bottom: 0;
+      transform: translateX(-50%);
+      z-index: 50;
+      width: min(1080px, calc(100vw - 24px));
+      padding: 12px 16px;
+      background: rgba(255,255,255,.98);
+      border: 1px solid rgba(15,23,42,.08);
+      border-bottom: none;
+      border-radius: 18px 18px 0 0;
+      box-shadow: 0 -10px 30px rgba(86,94,146,.18);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      backdrop-filter: blur(12px);
+    }
+
+    .page-progress {
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 700;
+      text-align: center;
+      flex: 1 1 auto;
+    }
+
+    button {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--brand), #4a7bff);
+      color: #fff;
+      box-shadow: 0 14px 26px rgba(109,94,252,.28);
+    }
+
+    .btn-ghost {
+      background: rgba(255,255,255,.92);
+      color: var(--muted);
+      border: 1px solid rgba(15,23,42,.08);
+    }
+
+    .btn-outline {
+      background: #fff;
+      color: var(--brand);
+      border: 1px solid rgba(109,94,252,.18);
+    }
+
+    .empty-state {
+      padding: 28px;
+      text-align: center;
+      color: var(--muted);
+      line-height: 1.8;
+    }
+
+    @media (max-width: 980px) {
+      .hero-stats, .options-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .shell { padding: 20px 12px 110px; }
+      .hero { padding: 22px 18px; }
+      h1 { font-size: 32px; }
+      .question-card, .main-card, .summary-panel { padding: 14px; }
+      .summary-actions, .summary-header { width: 100%; }
+      .bottom-toolbar {
+        width: calc(100vw - 16px);
+        padding: 10px 12px;
+        gap: 8px;
+      }
+      .bottom-toolbar button {
+        padding: 10px 12px;
+        font-size: 13px;
+      }
+      .page-progress { font-size: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-progress"><div class="top-progress-bar" id="topProgressBar"></div></div>
+
+  <div class="shell">
+    <section class="hero">
+      <div class="eyebrow">在线问卷 · 分页填写 · 自动保存</div>
+      <h1>设计需求在线问卷</h1>
+      <p>当前版本已升级为分页问卷。每页显示 1-2 道题，支持上一步 / 下一步切换，翻页时自动保存，提交后仍可查看汇总、导出 JSON 与复制摘要。</p>
+      <div class="hero-stats">
+        <div class="stat"><b id="stat-groups">0</b><span>分组板块</span></div>
+        <div class="stat"><b id="stat-questions">0</b><span>问卷题目</span></div>
+        <div class="stat"><b id="stat-pages">0</b><span>分页数</span></div>
+      </div>
+    </section>
+
+    <section class="main-card">
+      <div class="page-head">
+        <div>
+          <h2 id="pageTitle">问卷题目</h2>
+          <p id="pageDesc">请按页面逐步填写，所有答案都会自动保存在当前浏览器。</p>
+        </div>
+        <div class="page-meta" id="pageMeta">第 1 页 / 共 1 页</div>
+      </div>
+      <div id="formContainer" class="question-list"></div>
+
+      <section id="summaryPanel" class="summary-panel" aria-live="polite">
+        <div class="summary-header">
+          <div>
+            <h3>提交汇总</h3>
+            <p>支持导出 JSON 文件，或复制纯文本摘要，方便直接粘贴给 AI / 设计师 / 装修团队。</p>
+          </div>
+          <div class="summary-actions">
+            <button class="btn-outline" id="exportJsonBtn" type="button">导出结果 JSON</button>
+            <button class="btn-outline" id="copySummaryBtn" type="button">复制结果摘要</button>
+          </div>
+        </div>
+        <div class="submit-state" id="submitState"></div>
+        <div class="summary-list" id="summaryList"></div>
+      </section>
+    </section>
+  </div>
+
+  <div class="bottom-toolbar">
+    <button class="btn-ghost" id="prevBtn" type="button">上一步</button>
+    <div class="page-progress" id="bottomPageProgress">第 1 页 / 共 1 页</div>
+    <button class="btn-primary" id="nextBtn" type="button">下一步</button>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'design-survey-answers-v3';
+    const META_KEY = 'design-survey-meta-v3';
+
+    const survey = [
+      {
+        group: '全屋概述',
+        intro: '用于确认居住背景、风格偏好、时间节奏与整体生活方式。',
+        questions: [
+          { id: 'owner_count', label: '屋主人数', type: 'single', prompt: '原始条目：屋主 - 两大一小', options: ['1人', '2人', '3人', '4人及以上', '自定义'] },
+          { id: 'house_overview', label: '房屋概况', type: 'text', prompt: '原始条目：5楼二手房有装修，产证面积', placeholder: '例如：5楼二手房，已有基础装修，建筑面积 / 套内面积等' },
+          { id: 'start_time', label: '预计开工时间', type: 'single', prompt: '原始条目：5月', options: ['3月', '4月', '5月', '6月', '下半年', '待定', '自定义'] },
+          { id: 'move_in_time', label: '预计入住时间', type: 'single', prompt: '原始条目：表格未填写，保留为可选题', options: ['3个月内', '半年内', '1年内', '1年以上', '待定', '自定义'] },
+          { id: 'overall_style', label: '整体风格', type: 'multi', prompt: '原始条目：现代轻奢，暖色调', options: ['现代简约', '现代轻奢', '北欧', '日式侘寂', '新中式', '法式', '美式', '自定义'] },
+          { id: 'base_requirements', label: '基础要求', type: 'multi', prompt: '原始条目已拆解为多个功能点，可多选并补充。', options: ['未来两三年有小孩，需提前考虑育儿场景', '未来父母或月嫂会阶段性来住', '两个人都需要在家办公', '需要彼此独立、安静的会议 / 办公空间', '需要兼顾短期储物与行李箱收纳', '喜欢聚会，希望客餐厅宽敞通透', '需要简单运动空间', '偏好温暖明亮的灯光', '希望整体好打理、易清洁', '自定义'], allowRemark: true, remarkLabel: '补充说明（可选）' },
+          { id: 'residents', label: '居住人口', type: 'single', prompt: '原始条目：夫妻2人', options: ['仅夫妻', '夫妻+小孩', '夫妻+父母', '三代同堂', '自定义'] },
+          { id: 'pets', label: '关于宠物', type: 'single', prompt: '原始条目：无', options: ['无', '猫', '狗', '其他'] },
+          { id: 'hobbies', label: '兴趣爱好', type: 'multi', prompt: '原始条目：运动，电影，音乐，喝酒，阅读，游戏', options: ['运动', '电影', '音乐', '喝酒', '阅读', '游戏', '烹饪', '旅行', '自定义'] },
+          { id: 'network', label: '网络要求', type: 'text', prompt: '原始条目：wifi信号全覆盖', placeholder: '例如：全屋 WiFi 覆盖、书房和客厅需要高速稳定、有线口预留等' }
+        ]
+      },
+      {
+        group: '设备',
+        intro: '用于收集空调、地暖、新风、过滤与智能系统等设备偏好。',
+        questions: [
+          { id: 'ac', label: '中央空调', type: 'single', prompt: '原始条目：有需求，保证层高', options: ['有需求', '无需求'] },
+          { id: 'floor_heating', label: '地暖', type: 'single', prompt: '原始条目：无需求', options: ['有需求', '无需求'] },
+          { id: 'water_filter', label: '软水 + 过滤', type: 'multi', prompt: '原始条目：需要前置过滤加直饮机', options: ['无需求', '前置过滤', '直饮机', '净水器', '软水机', '自定义'] },
+          { id: 'fresh_air', label: '新风系统', type: 'single', prompt: '原始条目：有需求', options: ['有需求', '无需求'] },
+          { id: 'smart_home', label: '智能系统', type: 'multi', prompt: '原始条目：窗帘，空调，灯具等智能控制，不需要影音系统', options: ['无需求', '智能窗帘', '智能空调', '智能灯光', '影音系统', '全屋智能', '自定义'], allowRemark: true, remarkLabel: '补充说明（可选）' }
+        ]
+      },
+      {
+        group: '空间需求',
+        intro: '按空间整合功能点，每个空间都支持多选、自定义和额外备注。',
+        questions: [
+          { id: 'space_entry', label: '玄关需求', type: 'space_multi', prompt: '原始功能点已整合为玄关多选题。', options: ['全身镜', '包帽雨伞等杂物收纳', '足够鞋柜 / 鞋收纳', '换鞋空间', '外套包包和常用出门物品收纳', '行李箱收纳', '可坐着换鞋', '冬季外套临时收纳', '自定义'], allowRemark: true, remarkLabel: '玄关额外备注' },
+          { id: 'space_living', label: '客厅需求', type: 'space_multi', prompt: '原始功能点已整合为客厅多选题。', options: ['电视方案，不装投影', '纪念品 / 手办收纳展示', '适合聚会会客，可容纳多人', '客厅书籍收纳', '适合在沙发晒太阳看书', '具备家庭小酌场景', '自定义'], allowRemark: true, remarkLabel: '客厅额外备注' },
+          { id: 'space_study', label: '书房需求', type: 'space_multi', prompt: '原始功能点已整合为书房多选题。', options: ['独立书房', '可办公', '可打游戏', '需要安静隔音', '双人办公兼容', '自定义'], allowRemark: true, remarkLabel: '书房额外备注' },
+          { id: 'space_dining', label: '餐厅需求', type: 'space_multi', prompt: '原始功能点已整合为餐厅多选题。', options: ['满足 8 人左右聚餐', '零食杂物收纳', '酒柜', '餐边柜', '自定义'], allowRemark: true, remarkLabel: '餐厅额外备注' },
+          { id: 'space_kitchen', label: '厨房需求', type: 'space_multi', prompt: '原始功能点已整合为厨房多选题。', options: ['人体工学台面高度', '高低台设计', '大单盆', '开放式厨房', '动线合理（购理取洗切炒）', '双开门冰箱预留', '13 套洗碗机', '蒸烤一体机', '自定义'], allowRemark: true, remarkLabel: '厨房额外备注' },
+          { id: 'space_guest_bath', label: '客卫需求', type: 'space_multi', prompt: '原始功能点已整合为客卫多选题。', options: ['淋浴房', '马桶', '台盆', '清洁工具收纳', '纸品收纳', '自定义'], allowRemark: true, remarkLabel: '客卫额外备注' },
+          { id: 'space_guest_room', label: '客卧需求', type: 'space_multi', prompt: '原始功能点已整合为客卧多选题。', options: ['偶尔供朋友居住', '偶尔供父母居住', '多功能房', '临时办公 / 储物兼容', '自定义'], allowRemark: true, remarkLabel: '客卧额外备注' },
+          { id: 'space_master_bed', label: '主卧需求', type: 'space_multi', prompt: '原始功能点已整合为主卧多选题。', options: ['衣帽间', '被子等储藏空间', '投影仪', '梳妆台', '自定义'], allowRemark: true, remarkLabel: '主卧额外备注' },
+          { id: 'space_master_bath', label: '主卫需求', type: 'space_multi', prompt: '原始功能点已整合为主卫多选题。', options: ['淋浴房', '马桶', '台盆', '不要浴缸', '吹风机/电动牙刷/剃须刀充电位', '厕纸与卫生用品方便取用', '双台盆洗手台', '化妆品收纳空间', '方便化妆', '自定义'], allowRemark: true, remarkLabel: '主卫额外备注' },
+          { id: 'space_balcony', label: '阳台需求', type: 'space_multi', prompt: '原始功能点已整合为阳台多选题。', options: ['采光好', '阳台休闲空间', '洗衣机', '干衣机', '水斗', '杂物储藏柜', '兼顾洗衣 / 晾晒 / 休闲', '晾晒区需要分隔，不影响客厅视线', '自定义'], allowRemark: true, remarkLabel: '阳台额外备注' }
+        ]
+      },
+      {
+        group: '其他想法',
+        intro: '补充前面未覆盖、但对设计取舍仍然重要的想法。',
+        questions: [
+          { id: 'other_ideas', label: '其他想法', type: 'multi', prompt: '原始条目：有运动器材收纳、插座充足、照明布局合理、可中等预算取舍', options: ['运动器材 / 哑铃收纳', '尽量充足的插座', '照明开关布局合理', '可与智能家居整合', '希望有氛围感', '房屋居住 5 年左右，可做取舍', '中等预算', '自定义'], allowRemark: true, remarkLabel: '其他补充说明' }
+        ]
+      }
+    ];
+
+    const pages = [
+      { title: '全屋概述 · 基本信息', desc: '先确认房屋背景与入住节奏。', items: ['owner_count', 'house_overview'] },
+      { title: '全屋概述 · 时间计划', desc: '确认装修启动与入住时间。', items: ['start_time', 'move_in_time'] },
+      { title: '全屋概述 · 风格偏好', desc: '可多选，也可以补充自定义风格。', items: ['overall_style'] },
+      { title: '全屋概述 · 基础要求', desc: '勾选重点需求，并补充说明。', items: ['base_requirements'] },
+      { title: '全屋概述 · 居住情况', desc: '确认人口结构与宠物情况。', items: ['residents', 'pets'] },
+      { title: '全屋概述 · 生活方式', desc: '补充兴趣爱好和网络要求。', items: ['hobbies', 'network'] },
+      { title: '设备需求 · 空调地暖', desc: '优先确认基础设备偏好。', items: ['ac', 'floor_heating'] },
+      { title: '设备需求 · 水系统与新风', desc: '确认过滤、净水和新风偏好。', items: ['water_filter', 'fresh_air'] },
+      { title: '设备需求 · 智能系统', desc: '可多选并补充更细的智能化想法。', items: ['smart_home'] },
+      { title: '空间需求 · 玄关与客厅', desc: '这两个空间通常联系紧密，可以一起填写。', items: ['space_entry', 'space_living'] },
+      { title: '空间需求 · 书房与餐厅', desc: '关注办公、聚餐与展示收纳。', items: ['space_study', 'space_dining'] },
+      { title: '空间需求 · 厨房', desc: '重点确认动线、设备和台面偏好。', items: ['space_kitchen'] },
+      { title: '空间需求 · 客卫与客卧', desc: '确认来客居住和公共卫生间需求。', items: ['space_guest_bath', 'space_guest_room'] },
+      { title: '空间需求 · 主卧与主卫', desc: '这是高频使用空间，建议仔细填写。', items: ['space_master_bed', 'space_master_bath'] },
+      { title: '空间需求 · 阳台', desc: '确认晾晒、家政和休闲是否并存。', items: ['space_balcony'] },
+      { title: '其他想法', desc: '用于补充前面未覆盖、但仍很重要的需求。', items: ['other_ideas'] }
+    ];
+
+    const questionMap = new Map();
+    survey.forEach(section => section.questions.forEach(q => questionMap.set(q.id, { ...q, group: section.group })));
+    const allQuestions = Array.from(questionMap.values());
+
+    const formContainer = document.getElementById('formContainer');
+    const summaryPanel = document.getElementById('summaryPanel');
+    const summaryList = document.getElementById('summaryList');
+    const submitState = document.getElementById('submitState');
+    const exportJsonBtn = document.getElementById('exportJsonBtn');
+    const copySummaryBtn = document.getElementById('copySummaryBtn');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const pageHead = document.querySelector('.page-head');
+    const pageTitle = document.getElementById('pageTitle');
+    const pageDesc = document.getElementById('pageDesc');
+    const pageMeta = document.getElementById('pageMeta');
+    const bottomPageProgress = document.getElementById('bottomPageProgress');
+    const topProgressBar = document.getElementById('topProgressBar');
+
+    let answers = loadAnswers();
+    let meta = loadMeta();
+    let currentPageIndex = Number.isInteger(meta.currentPageIndex) ? meta.currentPageIndex : 0;
+    let saveTimer = null;
+
+    function loadAnswers() {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}'); } catch (err) { return {}; }
+    }
+
+    function loadMeta() {
+      try { return JSON.parse(localStorage.getItem(META_KEY) || '{}'); } catch (err) { return {}; }
+    }
+
+    function saveMeta() {
+      meta.currentPageIndex = currentPageIndex;
+      localStorage.setItem(META_KEY, JSON.stringify(meta));
+    }
+
+    function persistAnswers() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(answers));
+      meta.updatedAt = new Date().toISOString();
+      saveMeta();
+    }
+
+    function scheduleSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => persistAnswers(), 220);
+    }
+
+    function ensureState(question) {
+      if (!answers[question.id]) {
+        answers[question.id] = question.type === 'text'
+          ? { value: '' }
+          : { selected: question.type === 'single' ? '' : [], otherText: '', remark: '' };
+      }
+      if (question.type === 'text') {
+        answers[question.id].value ||= '';
+      } else {
+        answers[question.id].selected ||= question.type === 'single' ? '' : [];
+        answers[question.id].otherText ||= '';
+        answers[question.id].remark ||= '';
+      }
+      return answers[question.id];
+    }
+
+    function shortTypeLabel(type) {
+      if (type === 'single') return '单选';
+      if (type === 'multi') return '多选';
+      if (type === 'space_multi') return '多选';
+      return '填空';
+    }
+
+    function escapeHtml(text) {
+      return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    function normalizeAnswer(question, state) {
+      if (question.type === 'text') return (state.value || '').trim();
+      const parts = [];
+      if (question.type === 'single') {
+        if (state.selected) {
+          if (state.selected === '自定义' || state.selected === '其他') {
+            parts.push((state.otherText || '').trim() ? `自定义：${state.otherText.trim()}` : state.selected);
+          } else {
+            parts.push(state.selected);
+          }
+        }
+      } else {
+        const selected = Array.isArray(state.selected) ? state.selected : [];
+        selected.forEach(item => {
+          if (item === '自定义' || item === '其他') {
+            parts.push((state.otherText || '').trim() ? `自定义：${state.otherText.trim()}` : item);
+          } else {
+            parts.push(item);
+          }
+        });
+      }
+      if ((state.remark || '').trim()) parts.push(`备注：${state.remark.trim()}`);
+      return parts.join('；');
+    }
+
+    function isQuestionAnswered(question) {
+      const state = ensureState(question);
+      return Boolean(normalizeAnswer(question, state).trim());
+    }
+
+    function renderQuestion(question) {
+      const state = ensureState(question);
+      const selected = Array.isArray(state.selected) ? state.selected : [];
+      const singleValue = typeof state.selected === 'string' ? state.selected : '';
+      const isOtherSelected = question.type === 'single'
+        ? (singleValue === '自定义' || singleValue === '其他')
+        : selected.includes('自定义') || selected.includes('其他');
+
+      return `
+        <article class="question-card" data-question-id="${question.id}">
+          <div class="question-top">
+            <span class="tag">${question.group}</span>
+          </div>
+          <div class="question-title-row">
+            <h3 class="question-title">${question.label}</h3>
+            <span class="type-pill">${shortTypeLabel(question.type)}</span>
+          </div>
+          <details class="question-reference">
+            <summary>查看原始参考</summary>
+            <div class="question-reference-content">${question.prompt}</div>
+          </details>
+          ${renderInput(question, state, selected, singleValue, isOtherSelected)}
+          <div class="field-meta">
+            <span>支持自动保存</span>
+            <span>${question.type === 'space_multi' ? '多选 + 自定义 + 备注' : '可随时返回修改'}</span>
+          </div>
+        </article>
+      `;
+    }
+
+    function renderInput(question, state, selected, singleValue, isOtherSelected) {
+      if (question.type === 'text') {
+        return `<div class="text-box"><textarea data-text-id="${question.id}" placeholder="${question.placeholder || '请输入内容'}">${escapeHtml(state.value || '')}</textarea></div>`;
+      }
+
+      return `
+        <div class="options-grid">
+          ${question.options.map(option => `
+            <label class="option-chip">
+              <input
+                type="${question.type === 'single' ? 'radio' : 'checkbox'}"
+                name="${question.id}"
+                value="${escapeHtml(option)}"
+                data-choice-id="${question.id}"
+                ${question.type === 'single' ? (singleValue === option ? 'checked' : '') : (selected.includes(option) ? 'checked' : '')}
+              />
+              <span>${option}</span>
+            </label>
+          `).join('')}
+        </div>
+        ${(question.options.includes('自定义') || question.options.includes('其他')) ? `
+          <div class="other-box" style="display:${isOtherSelected ? 'block' : 'none'}" data-other-box="${question.id}">
+            <input type="text" data-other-id="${question.id}" placeholder="请填写自定义内容" value="${escapeHtml(state.otherText || '')}" />
+          </div>
+        ` : ''}
+        ${question.allowRemark ? `
+          <div class="remark-box">
+            <textarea data-remark-id="${question.id}" placeholder="${question.remarkLabel || '请输入补充说明'}">${escapeHtml(state.remark || '')}</textarea>
+            <div class="hint-inline">这里可填写尺寸、优先级、场景、顾虑或补充偏好。</div>
+          </div>
+        ` : ''}
+      `;
+    }
+
+    function bindEvents() {
+      document.querySelectorAll('[data-text-id]').forEach(el => {
+        el.addEventListener('input', e => {
+          const question = questionMap.get(e.target.dataset.textId);
+          ensureState(question).value = e.target.value;
+          scheduleSave();
+          updateTopProgress();
+        });
+      });
+
+      document.querySelectorAll('[data-choice-id]').forEach(el => {
+        el.addEventListener('change', e => {
+          const question = questionMap.get(e.target.dataset.choiceId);
+          const state = ensureState(question);
+          const value = e.target.value;
+          if (question.type === 'single') {
+            state.selected = value;
+          } else {
+            const next = new Set(Array.isArray(state.selected) ? state.selected : []);
+            if (e.target.checked) next.add(value); else next.delete(value);
+            state.selected = Array.from(next);
+          }
+          const otherBox = document.querySelector(`[data-other-box="${question.id}"]`);
+          if (otherBox) {
+            const show = question.type === 'single'
+              ? (state.selected === '自定义' || state.selected === '其他')
+              : state.selected.includes('自定义') || state.selected.includes('其他');
+            otherBox.style.display = show ? 'block' : 'none';
+            if (!show) {
+              state.otherText = '';
+              const input = document.querySelector(`[data-other-id="${question.id}"]`);
+              if (input) input.value = '';
+            }
+          }
+          scheduleSave();
+          updateTopProgress();
+        });
+      });
+
+      document.querySelectorAll('[data-other-id]').forEach(el => {
+        el.addEventListener('input', e => {
+          const question = questionMap.get(e.target.dataset.otherId);
+          ensureState(question).otherText = e.target.value;
+          scheduleSave();
+          updateTopProgress();
+        });
+      });
+
+      document.querySelectorAll('[data-remark-id]').forEach(el => {
+        el.addEventListener('input', e => {
+          const question = questionMap.get(e.target.dataset.remarkId);
+          ensureState(question).remark = e.target.value;
+          scheduleSave();
+          updateTopProgress();
+        });
+      });
+    }
+
+    function renderPage() {
+      const page = pages[currentPageIndex];
+      if (!page) return;
+      const showHeader = currentPageIndex === 0;
+      const firstQuestion = questionMap.get(page.items[0]);
+      const prevPage = currentPageIndex > 0 ? pages[currentPageIndex - 1] : null;
+      const prevFirstQuestion = prevPage ? questionMap.get(prevPage.items[0]) : null;
+      const showGroupTitle = !prevFirstQuestion || prevFirstQuestion.group !== firstQuestion.group;
+
+      pageHead.classList.toggle('show', showHeader);
+      pageTitle.textContent = showGroupTitle ? firstQuestion.group : page.title.replace(/^.*?·\s*/, '');
+      pageDesc.textContent = showGroupTitle ? page.desc : '';
+      pageMeta.textContent = `第 ${currentPageIndex + 1} 页 / 共 ${pages.length} 页`;
+      bottomPageProgress.textContent = `第 ${currentPageIndex + 1} 页 / 共 ${pages.length} 页`;
+      formContainer.innerHTML = page.items.map(id => renderQuestion(questionMap.get(id))).join('');
+      bindEvents();
+      prevBtn.disabled = currentPageIndex === 0;
+      nextBtn.textContent = currentPageIndex === pages.length - 1 ? '提交并查看汇总' : '下一步';
+      saveMeta();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateTopProgress() {
+      const answeredCount = allQuestions.filter(isQuestionAnswered).length;
+      const percent = Math.round((answeredCount / allQuestions.length) * 100);
+      topProgressBar.style.width = percent + '%';
+    }
+
+    function buildExportData() {
+      const submitTime = new Date().toISOString().slice(0, 19);
+      return {
+        submitTime,
+        answers: allQuestions.map(question => ({
+          group: question.group,
+          question: question.label,
+          type: question.type === 'text' ? 'text' : (question.type === 'single' ? 'single' : 'multi'),
+          answer: normalizeAnswer(question, ensureState(question))
+        }))
+      };
+    }
+
+    function buildPlainTextSummary() {
+      return survey.map(section => {
+        const lines = section.questions.map(question => `- ${question.label}：${normalizeAnswer(question, ensureState(question)) || '（未填写）'}`).join('\n');
+        return `【${section.group}】\n${lines}`;
+      }).join('\n\n');
+    }
+
+    function createSummary() {
+      const exportData = buildExportData();
+      summaryList.innerHTML = survey.map(section => {
+        const items = section.questions.map(question => `
+          <div class="summary-item">
+            <div class="summary-item-title">${question.label}</div>
+            <div class="summary-item-answer">${escapeHtml(normalizeAnswer(question, ensureState(question)) || '当前未填写')}</div>
+          </div>
+        `).join('');
+        const count = section.questions.filter(isQuestionAnswered).length;
+        return `
+          <section class="summary-group">
+            <div class="summary-group-head">
+              <strong>${section.group}</strong>
+              <span>${count}/${section.questions.length} 已完成</span>
+            </div>
+            <div class="summary-items">${items}</div>
+          </section>
+        `;
+      }).join('');
+      summaryPanel.classList.add('show');
+      submitState.textContent = '最近提交时间：' + new Date(exportData.submitTime).toLocaleString('zh-CN');
+      meta.submitted = true;
+      meta.lastSubmitTime = exportData.submitTime;
+      persistAnswers();
+      summaryPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function hideSummary() {
+      summaryPanel.classList.remove('show');
+      meta.submitted = false;
+      persistAnswers();
+    }
+
+    function exportJson() {
+      const data = buildExportData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'design-survey-result.json';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function copySummary() {
+      const text = buildPlainTextSummary();
+      try {
+        await navigator.clipboard.writeText(text);
+        copySummaryBtn.textContent = '已复制';
+        setTimeout(() => copySummaryBtn.textContent = '复制结果摘要', 1600);
+      } catch (err) {
+        window.prompt('你的浏览器未授权剪贴板复制，请手动复制以下内容：', text);
+      }
+    }
+
+    function goPrev() {
+      if (summaryPanel.classList.contains('show')) {
+        hideSummary();
+        renderPage();
+        return;
+      }
+      if (currentPageIndex === 0) return;
+      persistAnswers();
+      currentPageIndex -= 1;
+      renderPage();
+    }
+
+    function goNext() {
+      persistAnswers();
+      if (currentPageIndex === pages.length - 1) {
+        createSummary();
+        return;
+      }
+      hideSummary();
+      currentPageIndex += 1;
+      renderPage();
+    }
+
+    function renderStats() {
+      document.getElementById('stat-groups').textContent = survey.length;
+      document.getElementById('stat-questions').textContent = allQuestions.length;
+      document.getElementById('stat-pages').textContent = pages.length;
+    }
+
+    prevBtn.addEventListener('click', goPrev);
+    nextBtn.addEventListener('click', goNext);
+    exportJsonBtn.addEventListener('click', exportJson);
+    copySummaryBtn.addEventListener('click', copySummary);
+
+    renderStats();
+    updateTopProgress();
+    renderPage();
+    if (meta.submitted) createSummary();
+  </script>
+</body>
+</html>
